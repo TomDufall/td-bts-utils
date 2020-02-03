@@ -11,12 +11,12 @@ class MultiVarTest:
     """
     Test with multiple results.
     """
-    test_name: str
-    test_desc: str
+    name: str
+    description: str
     result_value: str
     results: List[str]
     result: str
-    test_threshold: str
+    threshold: str
 
 
 @dataclass
@@ -33,7 +33,12 @@ class SocaRecord:
     dept: str
     tests: Optional[List[MultiVarTest]]
 
-        
+    def isPass(self) -> bool:
+        if self.result == "PASS":
+            return True
+        return False
+
+
 def parse_records(file_path: str) -> List[SocaRecord]:
     with open(file_path, "r") as f:
         file = f.read()
@@ -96,8 +101,8 @@ def parse_records(file_path: str) -> List[SocaRecord]:
                 break
             test_info = list(filter(None, next_line.split(',')))
             if test_info[0] in ['Contin', 'Insulation']:
-                test_name = test_info[0]
-                test_desc = test_info[1]
+                name = test_info[0]
+                description = test_info[1]
                 result_value = test_info[2]
                 results = []
                 results.append(test_info[-1])
@@ -115,12 +120,12 @@ def parse_records(file_path: str) -> List[SocaRecord]:
                 test_threshold = test_footer[1]
                 tests.append(
                     MultiVarTest(
-                        test_name=test_name,
-                        test_desc=test_desc,
+                        name=name,
+                        description=description,
                         result_value=result_value,
                         results=results,
                         result=test_result,
-                        test_threshold=test_threshold,
+                        threshold=test_threshold,
                     )
                 )
                 next_line = ""
@@ -133,7 +138,7 @@ def parse_records(file_path: str) -> List[SocaRecord]:
                 tests=tests,
             )
         )
-        
+
     return records
 
 
