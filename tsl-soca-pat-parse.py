@@ -3,8 +3,7 @@ from datetime import datetime
 from typing import Dict, List
 
 
-SHORT_DATETIME_FORMAT = "%d-%m-%y %a %H:%M"
-LONG_DATETIME_FORMAT = "%d/%m/%Y at %H:%M:%S"
+WEEKDAY_DATETIME_FORMAT = "%d-%m-%y %a %H:%M"
 
 @dataclass
 class MultiVarTest:
@@ -50,19 +49,40 @@ class SocaRecord:
         return False
 
 
-def parse_records(file_path: str) -> List[SocaRecord]:
+@dataclass
+class SocaPatJob:
+    """
+    Structure for the job report export from the soca PAT tester.
+    """
+    company: str
+    print_date: datetime
+    job_code: str
+    description: str
+    create_date: datetime
+    load_date: datetime
+    client: str
+    records: List[SocaRecord]
+
+
+def parse_records(file_path: str) -> SocaPatJob:
+    job_dict = {}
+
     with open(file_path, "r") as f:
         file = f.read()
 
     lines = []
-    # 12 line initial header
-    skip_count = 12
+    skip_count = 0
+    start = True
+
     for line in file.splitlines(keepends=True):
         if skip_count > 0:
             skip_count -= 1
             continue
         if "Job Report,,,,,,,,,,,,,,,,,," in line:
-            skip_count = 10
+            if start == True:
+                start = False
+            else:
+                skip_count = 10
             continue
         elif line.startswith(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"):
             continue
@@ -70,9 +90,25 @@ def parse_records(file_path: str) -> List[SocaRecord]:
             continue
         lines.append(line)
 
+    iter_lines = iter(lines)
+
+    # extract job info from initial header
+    job_dict['company'] = \
+        list(filter(None, next(iter_lines).split(",")))[0].split(' : ', 1)[1]
+    print_date_str = list(filter(None, next(iter_lines).split(",")))[1]
+    job_dict['print_date'] = datetime.strptime(
+        print_date_str, "Printed on %d/%m/%Y  at  %H:%M:%S"
+    )
+    next(iter_lines)
+    job_header = next(iter_lines).split(",")
+    job_dict['job_code'] = job_header[3]
+    job_dict['description'] = job_header[10]
+    job_dict['create_date'] = datetime.strptime(job_header[37], "%d/%m/%Y %H:%M")
+    job_dict['load_date'] = datetime.strptime(job_header[47], "%d %b %Y %H:%M")
+    job_dict['client'] = job_header[67]
+
     # load records
     records = []
-    iter_lines = iter(lines)
     next_line = ""
     while True:
         if next_line:
@@ -90,10 +126,10 @@ def parse_records(file_path: str) -> List[SocaRecord]:
         headers = {
             'bar_code': header_entries[0],
             'test_date': datetime.strptime(
-                header_entries[1], SHORT_DATETIME_FORMAT
+                header_entries[1], WEEKDAY_DATETIME_FORMAT
             ),
             'scan_date': datetime.strptime(
-                header_entries[2], SHORT_DATETIME_FORMAT
+                header_entries[2], WEEKDAY_DATETIME_FORMAT
             ),
             'user': header_entries[3],
             'result': header_entries[4],
@@ -152,12 +188,11 @@ def parse_records(file_path: str) -> List[SocaRecord]:
             )
         )
 
-    return records
+    result = SocaPatJob(**job_dict, records=records)
+    print(f"{len(result.records)} records parsed.")
+    return result
 
 
 if __name__ == "__main__":
     fpath = "soca-pat.csv"
-    records = parse_records(fpath)
-    from pprint import pprint
-    pprint(records[1])
-    print(f"{len(records)} records parsed.")
+    job = parse_records(fpath)
