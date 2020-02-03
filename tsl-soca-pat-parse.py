@@ -1,5 +1,10 @@
 from dataclasses import dataclass # note: requires Python 3.7 or later
+from datetime import datetime
 from typing import Dict, List
+
+
+SHORT_DATETIME_FORMAT = "%d-%m-%y %a %H:%M"
+LONG_DATETIME_FORMAT = "%d/%m/%Y at %H:%M:%S"
 
 @dataclass
 class MultiVarTest:
@@ -68,8 +73,12 @@ def parse_records(file_path: str):
         header_entries = list(filter(None, header_str.split(",")))
         headers = {
             'bar_code': header_entries[0],
-            'test_date': header_entries[1],
-            'scan_date': header_entries[2],
+            'test_date': datetime.strptime(
+                header_entries[1], SHORT_DATETIME_FORMAT
+            ),
+            'scan_date': datetime.strptime(
+                header_entries[2], SHORT_DATETIME_FORMAT
+            ),
             'user': header_entries[3],
             'result': header_entries[4],
             'mode': header_entries[5],
