@@ -1,6 +1,6 @@
 from dataclasses import dataclass # note: requires Python 3.7 or later
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 SHORT_DATETIME_FORMAT = "%d-%m-%y %a %H:%M"
@@ -41,7 +41,7 @@ class SocaRecord:
     result: str
     mode: str
     dept: str
-    tests: Optional[List[MultiVarTest]]
+    tests: Dict[str, MultiVarTest]
 
     @property
     def is_pass(self) -> bool:
@@ -104,7 +104,7 @@ def parse_records(file_path: str) -> List[SocaRecord]:
         # discard header line
         next(iter_lines)
 
-        tests = []
+        tests = {}
         while True:
             try:
                 next_line = next(iter_lines)
@@ -133,15 +133,13 @@ def parse_records(file_path: str) -> List[SocaRecord]:
                 next_line = ""
                 test_result = test_footer[0]
                 test_threshold = float(test_footer[1])
-                tests.append(
-                    MultiVarTest(
-                        name=name,
-                        description=description,
-                        result_value=result_value,
-                        results=results,
-                        result=test_result,
-                        threshold=test_threshold,
-                    )
+                tests[name] = MultiVarTest(
+                    name=name,
+                    description=description,
+                    result_value=result_value,
+                    results=results,
+                    result=test_result,
+                    threshold=test_threshold,
                 )
                 next_line = ""
             else:
