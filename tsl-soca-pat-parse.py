@@ -26,8 +26,7 @@ class SocaRecord:
     result: bool
     mode: str
     dept: str
-    continuity: MultiVarTest
-    insulation: MultiVarTest
+    tests: List[MultiVarTest]
 
         
 def parse_records(file_path: str):
@@ -53,11 +52,16 @@ def parse_records(file_path: str):
     # load records
     records = []
     iter_lines = iter(lines)
+    next_line = ""
     while True:
-        try:
-            header_str = next(iter_lines)
-        except StopIteration:
-            break
+        if next_line:
+            header_str = next_line
+            next_line = ""
+        else:
+            try:
+                header_str = next(iter_lines)
+            except StopIteration:
+                break
 
         if 'BTS' not in header_str:
             continue
@@ -75,65 +79,51 @@ def parse_records(file_path: str):
         # discard header line
         next(iter_lines)
 
-        # contin
-        test_info = list(filter(None, next(iter_lines).split(',')))
-        if test_info[0] == 'Contin':
-            contin_result_value = test_info[2]
-            contin_results = []
-            contin_results.append(test_info[-1])
-            while True:
-                test_result = list(filter(None, next(iter_lines).split(',')))
-                if len(test_result) == 1:
-                    contin_results.append(test_result[0])
-                else:
-                    contin_results.append(test_result[0])
-                    test_info = test_result[1:]
-                    break
-            contin_result = test_info[0]
-            contin_threshold = test_info[1]
-            continuity_test = MultiVarTest(
-                test_name='Contin',
-                test_desc='Continuity Test',
-                result_value=contin_result_value,
-                results=contin_results,
-                result=contin_result,
-                test_threshold=contin_threshold,
-            )
-        else:
-            continuity_test = None
+        tests = []
+        while True:
+            try:
+                next_line = next(iter_lines)
+            except StopIteration:
+                break
+            test_info = list(filter(None, next_line.split(',')))
+            if test_info[0] in ['Contin', 'Insulation']:
+                test_name = test_info[0]
+                test_desc = test_info[1]
+                result_value = test_info[2]
+                results = []
+                results.append(test_info[-1])
+                while True:
+                    next_line = next(iter_lines)
+                    if '"' not in next_line:
+                        results.append(next_line)
+                    else:
+                        results.append(next_line.split('"')[0])
+                        next_line = next_line.split('"', 1)[1]
+                        break
+                test_footer = list(filter(None, next_line.split(',')))
+                next_line = ""
+                test_result = test_footer[0]
+                test_threshold = test_footer[1]
+                tests.append(
+                    MultiVarTest(
+                        test_name=test_name,
+                        test_desc=test_desc,
+                        result_value=result_value,
+                        results=results,
+                        result=test_result,
+                        test_threshold=test_threshold,
+                    )
+                )
+                next_line = ""
+            else:
+                break
 
-        # ins
-        test_info = list(filter(None, next(iter_lines).split(',')))
-        if test_info[0] == 'Insulation':
-            ins_result_value = test_info[2]
-            ins_results = []
-            ins_results.append(test_info[-1])
-            while True:
-                test_result = list(filter(None, next(iter_lines).split(',')))
-                if len(test_result) == 1:
-                    ins_results.append(test_result[0])
-                else:
-                    ins_results.append(test_result[0])
-                    test_info = test_result[1:]
-                    break
-            ins_result = test_info[0]
-            ins_threshold = test_info[1]
-            ins_test = MultiVarTest(
-                test_name='Insulation',
-                test_desc='Insulation Test',
-                result_value=ins_result_value,
-                results=ins_results,
-                result=ins_result,
-                test_threshold=ins_threshold,
+        records.append(
+            SocaRecord(
+                **headers,
+                tests=tests,
             )
-        else:
-            ins_test = None
-
-        records.append(SocaRecord(
-            **headers,
-            continuity=continuity_test,
-            insulation=ins_test,
-        ))
+        )
         
     return records
 
@@ -141,8 +131,8 @@ def parse_records(file_path: str):
 
 
 if __name__ == "__main__":
-    fpath = r"C:\Users\Tom Dufall\Documents\soca-pat.csv"
+    fpath = "soca-pat.csv"
     records = parse_records(fpath)
     from pprint import pprint
     pprint(records[1])
-    print("Done!")
+    print(f"{len(records)} records parsed.")
