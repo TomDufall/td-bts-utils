@@ -1,6 +1,6 @@
 from dataclasses import dataclass # note: requires Python 3.7 or later
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 SHORT_DATETIME_FORMAT = "%d-%m-%y %a %H:%M"
@@ -13,10 +13,10 @@ class MultiVarTest:
     """
     test_name: str
     test_desc: str
-    result_value: float
-    results: Dict[str, float]
-    result: bool
-    test_threshold: float
+    result_value: str
+    results: List[str]
+    result: str
+    test_threshold: str
 
 
 @dataclass
@@ -25,16 +25,16 @@ class SocaRecord:
     Soca record.
     """
     bar_code: str
-    test_date: str
-    scan_date: str
+    test_date: datetime
+    scan_date: datetime
     user: str
-    result: bool
+    result: str
     mode: str
     dept: str
-    tests: List[MultiVarTest]
+    tests: Optional[List[MultiVarTest]]
 
         
-def parse_records(file_path: str):
+def parse_records(file_path: str) -> List[SocaRecord]:
     with open(file_path, "r") as f:
         file = f.read()
 
@@ -135,8 +135,6 @@ def parse_records(file_path: str):
         )
         
     return records
-
-
 
 
 if __name__ == "__main__":
