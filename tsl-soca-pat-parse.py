@@ -18,6 +18,16 @@ class MultiVarTest:
     result: str
     threshold: float
 
+    def get_result(self, index: int) -> float:
+        i = "{:03d}".format(index)
+        return self.results.get(i)
+
+    @property
+    def is_pass(self) -> bool:
+        if self.result == "PASS":
+            return True
+        return False
+
 
 @dataclass
 class SocaRecord:
@@ -33,7 +43,8 @@ class SocaRecord:
     dept: str
     tests: Optional[List[MultiVarTest]]
 
-    def isPass(self) -> bool:
+    @property
+    def is_pass(self) -> bool:
         if self.result == "PASS":
             return True
         return False
