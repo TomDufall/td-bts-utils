@@ -13,10 +13,10 @@ class MultiVarTest:
     """
     name: str
     description: str
-    result_value: str
-    results: List[str]
+    result_value: float
+    results: Dict[str, float]
     result: str
-    threshold: str
+    threshold: float
 
 
 @dataclass
@@ -103,21 +103,25 @@ def parse_records(file_path: str) -> List[SocaRecord]:
             if test_info[0] in ['Contin', 'Insulation']:
                 name = test_info[0]
                 description = test_info[1]
-                result_value = test_info[2]
-                results = []
-                results.append(test_info[-1])
+                result_value = float(test_info[2])
+                result_strings = []
+                result_strings.append(test_info[-1].strip('"'))
                 while True:
                     next_line = next(iter_lines)
                     if '"' not in next_line:
-                        results.append(next_line)
+                        result_strings.append(next_line)
                     else:
-                        results.append(next_line.split('"')[0])
+                        result_strings.append(next_line.split('"')[0])
                         next_line = next_line.split('"', 1)[1]
                         break
+                results = {}
+                for item in result_strings:
+                    key, value = item.split(" : ")
+                    results[key] = float(value)
                 test_footer = list(filter(None, next_line.split(',')))
                 next_line = ""
                 test_result = test_footer[0]
-                test_threshold = test_footer[1]
+                test_threshold = float(test_footer[1])
                 tests.append(
                     MultiVarTest(
                         name=name,
